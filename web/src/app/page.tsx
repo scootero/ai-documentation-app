@@ -3,24 +3,43 @@
 import TextInput from "../components/TextInput";
 import ProjectCard from "../components/ProjectCard";
 import { getAllSampleProjects } from "../data/sampleProjects";
+import { useState } from "react";
+import { Project } from "@/types/Project";
+import { v4 as uuidv4 } from 'uuid';
 
 export default function Home() {
-  const handleSubmit = (text: string) => {
-    console.log("Submitted text:", text);
-    // Handle the text submission here
+  const [projects, setProjects] = useState<Project[]>(getAllSampleProjects());
+
+  const handleNewProject = (name: string, description: string) => {
+    const newProject: Project = {
+      id: uuidv4(),
+      name,
+      description,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      blocks: [
+        {
+          id: uuidv4(),
+          type: 'heading',
+          content: name,
+          level: 1
+        },
+        {
+          id: uuidv4(),
+          type: 'paragraph',
+          content: description
+        }
+      ]
+    };
+
+    setProjects([...projects, newProject]);
   };
 
-  const handleNewProject = () => {
-    console.log("Creating new project");
-    // Handle new project creation here
+  const handleUpdateProject = (updatedProject: Project) => {
+    setProjects(projects.map(project =>
+      project.id === updatedProject.id ? updatedProject : project
+    ));
   };
-
-  const handleEditProject = (projectId: string) => {
-    console.log("Editing project:", projectId);
-    // Handle project editing here
-  };
-
-  const projects = getAllSampleProjects();
 
   return (
     <div className="min-h-screen bg-gray-950 p-8">
@@ -31,7 +50,8 @@ export default function Home() {
         {/* Input Section */}
         <section>
           <TextInput
-            onSubmit={handleSubmit}
+            projects={projects}
+            onUpdateProject={handleUpdateProject}
             onNewProject={handleNewProject}
             placeholder="Type or paste text here..."
           />
@@ -52,7 +72,7 @@ export default function Home() {
               <ProjectCard
                 key={project.id}
                 project={project}
-                onEdit={() => handleEditProject(project.id)}
+                onUpdate={handleUpdateProject}
               />
             ))}
           </div>
@@ -61,7 +81,7 @@ export default function Home() {
           {projects.length === 0 && (
             <div className="text-center py-12 bg-gray-900 rounded-lg">
               <p className="text-gray-400">
-                No projects yet. Create one by clicking the "New Project" button above.
+                No projects yet. Create one by clicking the &quot;New Project&quot; button above.
               </p>
             </div>
           )}

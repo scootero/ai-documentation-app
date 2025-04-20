@@ -1,21 +1,41 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Project } from '@/types/Project';
 import BlockRenderer from './blocks/BlockRenderer';
 import { formatDistanceToNow } from 'date-fns';
+import ProjectEditor from './ProjectEditor';
 
 interface ProjectCardProps {
   project: Project;
-  onEdit?: () => void;
+  onUpdate?: (updatedProject: Project) => void;
   className?: string;
 }
 
 const ProjectCard: React.FC<ProjectCardProps> = ({
   project,
-  onEdit,
+  onUpdate,
   className = ''
 }) => {
+  const [isEditing, setIsEditing] = useState(false);
+
+  const handleSave = (updatedProject: Project) => {
+    if (onUpdate) {
+      onUpdate(updatedProject);
+    }
+    setIsEditing(false);
+  };
+
+  if (isEditing) {
+    return (
+      <ProjectEditor
+        project={project}
+        onSave={handleSave}
+        onCancel={() => setIsEditing(false)}
+      />
+    );
+  }
+
   return (
     <article className={`bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden ${className}`}>
       {/* Project Header */}
@@ -29,9 +49,9 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
               Last updated {formatDistanceToNow(new Date(project.updatedAt))} ago
             </p>
           </div>
-          {onEdit && (
+          {onUpdate && (
             <button
-              onClick={onEdit}
+              onClick={() => setIsEditing(true)}
               className="text-blue-600 hover:text-blue-700 dark:text-blue-400
                        dark:hover:text-blue-300 transition-colors"
             >
