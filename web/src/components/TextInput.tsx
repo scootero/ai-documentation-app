@@ -1,8 +1,10 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { selectProject, modifyBlocks, simplifyProjects } from '@/services/chatgptService';
-import { Project } from '@/types/Project';
+import { createProject, addBlocksToProject } from '@/services/projectService';
+import { Project } from '@/types/supabase';
 import { v4 as uuidv4 } from 'uuid';
 
 interface TextInputProps {
@@ -21,10 +23,14 @@ const TextInput: React.FC<TextInputProps> = ({
     const [text, setText] = useState('');
     const [isNewProjectMode, setIsNewProjectMode] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const { user } = useAuth();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!user) return;
+
         if (isNewProjectMode) {
             // Handle new project creation
             const lines = text.split('\n');
@@ -42,34 +48,39 @@ const TextInput: React.FC<TextInputProps> = ({
                 }
             }
         } else {
-            // Handle AI submission
             setIsLoading(true);
             try {
-                // First API call: Select project
                 const simplifiedProjects = simplifyProjects(projects);
                 const { projectId } = await selectProject(simplifiedProjects, text);
 
-                // Find the selected project
                 const selectedProject = projects.find(p => p.id === projectId);
                 if (!selectedProject) {
                     throw new Error('Selected project not found');
                 }
 
-                // Second API call: Modify blocks
                 const { blocks } = await modifyBlocks(selectedProject, text);
 
+                // Add the blocks to the project
+                const newBlocks = await addBlocksToProject(projectId, blocks.map(block => ({
+                    type: block.type,
+                    content: block.content,
+                    metadata: block.metadata || {},
+                    position: block.position,
+                    level: block.type === 'heading' ? block.level : null
+                })));
+
                 // Update the project with new blocks
-                const updatedProject: Project = {
+                const updatedProject = {
                     ...selectedProject,
-                    blocks: [...selectedProject.blocks, ...blocks],
-                    updatedAt: new Date().toISOString()
+                    blocks: [...selectedProject.blocks, ...newBlocks],
+                    updated_at: new Date().toISOString()
                 };
 
                 onUpdateProject(updatedProject);
                 setText('');
             } catch (error) {
                 console.error('Error processing input:', error);
-                // TODO: Show error message to user
+                setError(error instanceof Error ? error.message : 'An error occurred');
             } finally {
                 setIsLoading(false);
             }

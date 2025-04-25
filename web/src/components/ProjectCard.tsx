@@ -1,14 +1,19 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Project } from '@/types/Project';
+import { Project, Block } from '@/types/supabase';
 import BlockRenderer from './blocks/BlockRenderer';
 import { formatDistanceToNow } from 'date-fns';
 import ProjectEditor from './ProjectEditor';
+import { updateProject } from '@/services/projectService';
+
+interface ProjectWithBlocks extends Project {
+  blocks: Block[];
+}
 
 interface ProjectCardProps {
-  project: Project;
-  onUpdate?: (updatedProject: Project) => void;
+  project: ProjectWithBlocks;
+  onUpdate: (project: ProjectWithBlocks) => void;
   className?: string;
 }
 
@@ -19,11 +24,15 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
 }) => {
   const [isEditing, setIsEditing] = useState(false);
 
-  const handleSave = (updatedProject: Project) => {
-    if (onUpdate) {
-      onUpdate(updatedProject);
+  const handleSave = async (updatedProject: ProjectWithBlocks) => {
+    try {
+      const result = await updateProject(project.id, updatedProject);
+      onUpdate({ ...result, blocks: project.blocks });
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Error updating project:', error);
+      // TODO: Show error message to user
     }
-    setIsEditing(false);
   };
 
   if (isEditing) {
@@ -46,7 +55,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
               {project.name}
             </h2>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Last updated {formatDistanceToNow(new Date(project.updatedAt))} ago
+              Last updated {formatDistanceToNow(new Date(project.updated_at))} ago
             </p>
           </div>
           {onUpdate && (
@@ -79,7 +88,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
       <footer className="px-6 py-4 bg-gray-50 dark:bg-gray-900 border-t
                        border-gray-200 dark:border-gray-700">
         <div className="flex justify-between items-center text-sm text-gray-600 dark:text-gray-400">
-          <span>Created {formatDistanceToNow(new Date(project.createdAt))} ago</span>
+          <span>Created {formatDistanceToNow(new Date(project.created_at))} ago</span>
           <span>{project.blocks.length} blocks</span>
         </div>
       </footer>
