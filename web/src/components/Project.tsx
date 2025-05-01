@@ -1,20 +1,23 @@
 'use client';
 
 import React, { useState } from 'react';
-import type { Project } from '@/types/Project';
-import type { DocBlock } from '@/types/DocBlock';
+import type { Project, Block } from '@/types/supabase';
 import ProjectEditor from './ProjectEditor';
-import BlockRenderer from './BlockRenderer';
+import BlockRenderer from './blocks/BlockRenderer';
+
+interface ProjectWithBlocks extends Project {
+  blocks: Block[];
+}
 
 interface ProjectProps {
-  project: Project;
-  onUpdate: (updatedProject: Project) => void;
+  project: ProjectWithBlocks;
+  onUpdate: (updatedProject: ProjectWithBlocks) => void;
 }
 
 const Project: React.FC<ProjectProps> = ({ project, onUpdate }) => {
   const [isEditing, setIsEditing] = useState(false);
 
-  const handleSave = (updatedProject: Project) => {
+  const handleSave = (updatedProject: ProjectWithBlocks) => {
     onUpdate(updatedProject);
     setIsEditing(false);
   };
@@ -52,7 +55,7 @@ const Project: React.FC<ProjectProps> = ({ project, onUpdate }) => {
       </div>
 
       <div className="space-y-4">
-        {project.blocks.map((block: DocBlock) => (
+        {project.blocks.map((block) => (
           <BlockRenderer key={block.id} block={block} />
         ))}
       </div>

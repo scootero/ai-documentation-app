@@ -1,13 +1,16 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Project } from '@/types/Project';
-import { DocBlock } from '@/types/DocBlock';
-import { v4 as uuidv4 } from 'uuid';
+import { Project, Block } from '@/types/supabase';
+import EditableBlockImage from './blocks/EditableBlockImage';
+
+interface ProjectWithBlocks extends Project {
+  blocks: Block[];
+}
 
 interface ProjectEditorProps {
-  project: Project;
-  onSave: (updatedProject: Project) => void;
+  project: ProjectWithBlocks;
+  onSave: (updatedProject: ProjectWithBlocks) => void;
   onCancel: () => void;
 }
 
@@ -19,154 +22,19 @@ const ProjectEditor: React.FC<ProjectEditorProps> = ({
   // State for the editable content
   const [title, setTitle] = useState(project.name);
   const [description, setDescription] = useState(project.description || '');
-  const [content, setContent] = useState(
-    project.blocks
-      .map(block => {
-        switch (block.type) {
-          case 'heading':
-          case 'subheading':
-            return `# ${block.content}\n`;
-          case 'paragraph':
-            return `${block.content}\n\n`;
-          case 'bulleted_list':
-            return block.items?.map(item => `• ${item}`).join('\n') + '\n\n';
-          case 'numbered_list':
-            return block.items?.map((item, i) => `${i + 1}. ${item}`).join('\n') + '\n\n';
-          case 'quote':
-            return `> ${block.content}\n\n`;
-          case 'code':
-            return `\`\`\`${block.codeLanguage || ''}\n${block.content}\n\`\`\`\n\n`;
-          default:
-            return '';
-        }
-      })
-      .join('')
-  );
+  const [blocks, setBlocks] = useState<Block[]>(project.blocks);
 
-  // Parse content into blocks
-  const parseContent = (text: string): DocBlock[] => {
-    const blocks: DocBlock[] = [];
-    const lines = text.split('\n');
-    let currentBlock: Partial<DocBlock> | null = null;
-    let codeBlockLanguage = '';
-    let isInCodeBlock = false;
-
-    lines.forEach((line) => {
-      const trimmedLine = line.trim();
-
-      // Skip empty lines unless in code block
-      if (!trimmedLine && !isInCodeBlock) {
-        if (currentBlock) {
-          blocks.push(currentBlock as DocBlock);
-          currentBlock = null;
-        }
-        return;
-      }
-
-      // Handle code blocks
-      if (trimmedLine.startsWith('```')) {
-        if (!isInCodeBlock) {
-          isInCodeBlock = true;
-          codeBlockLanguage = trimmedLine.slice(3);
-          currentBlock = {
-            id: uuidv4(),
-            type: 'code',
-            content: '',
-            codeLanguage: codeBlockLanguage,
-            showLineNumbers: true,
-            copyButton: true
-          };
-        } else {
-          isInCodeBlock = false;
-          if (currentBlock) {
-            blocks.push(currentBlock as DocBlock);
-            currentBlock = null;
-          }
-        }
-        return;
-      }
-
-      if (isInCodeBlock) {
-        if (currentBlock) {
-          currentBlock.content = (currentBlock.content || '') + line + '\n';
-        }
-        return;
-      }
-
-      // Handle other block types
-      if (trimmedLine.startsWith('# ')) {
-        if (currentBlock) blocks.push(currentBlock as DocBlock);
-        currentBlock = {
-          id: uuidv4(),
-          type: 'heading',
-          content: trimmedLine.slice(2),
-          level: 1
-        };
-      } else if (trimmedLine.startsWith('## ')) {
-        if (currentBlock) blocks.push(currentBlock as DocBlock);
-        currentBlock = {
-          id: uuidv4(),
-          type: 'subheading',
-          content: trimmedLine.slice(3),
-          level: 2
-        };
-      } else if (trimmedLine.startsWith('> ')) {
-        if (currentBlock) blocks.push(currentBlock as DocBlock);
-        currentBlock = {
-          id: uuidv4(),
-          type: 'quote',
-          content: trimmedLine.slice(2),
-          formatting: { italic: true }
-        };
-      } else if (trimmedLine.startsWith('• ')) {
-        if (!currentBlock || currentBlock.type !== 'bulleted_list') {
-          if (currentBlock) blocks.push(currentBlock as DocBlock);
-          currentBlock = {
-            id: uuidv4(),
-            type: 'bulleted_list',
-            items: []
-          };
-        }
-        currentBlock.items = [...(currentBlock.items || []), trimmedLine.slice(2)];
-      } else if (/^\d+\.\s/.test(trimmedLine)) {
-        if (!currentBlock || currentBlock.type !== 'numbered_list') {
-          if (currentBlock) blocks.push(currentBlock as DocBlock);
-          currentBlock = {
-            id: uuidv4(),
-            type: 'numbered_list',
-            items: []
-          };
-        }
-        currentBlock.items = [...(currentBlock.items || []), trimmedLine.replace(/^\d+\.\s/, '')];
-      } else {
-        if (!currentBlock || currentBlock.type !== 'paragraph') {
-          if (currentBlock) blocks.push(currentBlock as DocBlock);
-          currentBlock = {
-            id: uuidv4(),
-            type: 'paragraph',
-            content: trimmedLine
-          };
-        } else {
-          currentBlock.content += ' ' + trimmedLine;
-        }
-      }
-    });
-
-    // Add the last block if exists
-    if (currentBlock) {
-      blocks.push(currentBlock as DocBlock);
-    }
-
-    return blocks;
+  const handleRemoveBlock = (blockId: string) => {
+    setBlocks(prevBlocks => prevBlocks.filter(block => block.id !== blockId));
   };
 
   const handleSave = () => {
-    const updatedProject: Project = {
+    const updatedProject: ProjectWithBlocks = {
       ...project,
       name: title,
       description: description,
-      blocks: parseContent(content),
-      updatedAt: new Date().toISOString()
+      blocks: blocks,
+      updated_at: new Date().toISOString()
     };
     onSave(updatedProject);
   };
@@ -209,16 +77,52 @@ const ProjectEditor: React.FC<ProjectEditorProps> = ({
               <li>```language Code block ```</li>
             </ul>
           </div>
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            className="w-full h-96 p-4 bg-gray-50 dark:bg-gray-900 text-gray-900
-                     dark:text-gray-100 rounded-lg border border-gray-300
-                     dark:border-gray-700 focus:border-blue-500
-                     dark:focus:border-blue-400 outline-none resize-none
-                     font-mono text-sm"
-            placeholder="Start typing your content here..."
-          />
+          <div className="space-y-4">
+            {blocks.map((block) => {
+              if (block.type === 'image') {
+                return (
+                  <div key={block.id} className="mb-4">
+                    <EditableBlockImage
+                      block={block}
+                      onRemove={() => handleRemoveBlock(block.id)}
+                    />
+                  </div>
+                );
+              }
+              return (
+                <div key={block.id} className="relative group">
+                  <textarea
+                    value={block.content || ''}
+                    onChange={(e) => {
+                      setBlocks(prevBlocks =>
+                        prevBlocks.map(b =>
+                          b.id === block.id
+                            ? { ...b, content: e.target.value }
+                            : b
+                        )
+                      );
+                    }}
+                    className="w-full p-4 bg-gray-50 dark:bg-gray-900 text-gray-900
+                             dark:text-gray-100 rounded-lg border border-gray-300
+                             dark:border-gray-700 focus:border-blue-500
+                             dark:focus:border-blue-400 outline-none resize-none
+                             font-mono text-sm"
+                    rows={3}
+                  />
+                  <button
+                    onClick={() => handleRemoveBlock(block.id)}
+                    className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full
+                             hover:bg-red-600 transition-colors opacity-0 group-hover:opacity-100"
+                    title="Remove block"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         {/* Action Buttons */}
