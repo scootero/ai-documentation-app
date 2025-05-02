@@ -28,7 +28,7 @@ if (!API_KEY) {
 }
 
 const API_URL = 'https://api.openai.com/v1/chat/completions';
-/*  LEAVE THIS COMMENTED OUT FOR NOW
+// LEAVE THIS COMMENTED OUT FOR NOW
 const projectSelectionPrompt = `You are an intelligent documentation assistant. You will receive:
 1. A list of documentation projects, each containing an id, name, and description
 2. A new user input (text, webpage content, or image description)
@@ -47,7 +47,9 @@ Respond with a JSON object in this exact format:
   "projectName": "the name of the selected project",
   "processedInput": "condensed/summarized version of the input"
 }`;
-*/
+// */
+
+/*
 // New prompt for project selection
 const projectSelectionPrompt = `
 You are an intelligent documentation assistant.
@@ -70,7 +72,7 @@ Reply _only_ with valid JSON in this exact shape:
   "processedInput": "..."
 }
 `;
-
+*/
 
 
 const blockModificationPrompt = `You are an expert document assistant that works with structured documentation projects. Each project consists of an ordered list of "blocks" of content, each with a type such as: 'paragraph', 'heading', 'image', or 'quote'.
