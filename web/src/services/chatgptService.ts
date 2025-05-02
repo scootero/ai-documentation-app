@@ -1,4 +1,4 @@
-import { Project, Block } from '@/types/supabase';
+import { Project, Block } from '@/supabase/types/supabase';
 
 interface ProjectSelectionResponse {
   projectId: string;
@@ -28,7 +28,7 @@ if (!API_KEY) {
 }
 
 const API_URL = 'https://api.openai.com/v1/chat/completions';
-
+/*  LEAVE THIS COMMENTED OUT FOR NOW
 const projectSelectionPrompt = `You are an intelligent documentation assistant. You will receive:
 1. A list of documentation projects, each containing an id, name, and description
 2. A new user input (text, webpage content, or image description)
@@ -47,6 +47,31 @@ Respond with a JSON object in this exact format:
   "projectName": "the name of the selected project",
   "processedInput": "condensed/summarized version of the input"
 }`;
+*/
+// New prompt for project selection
+const projectSelectionPrompt = `
+You are an intelligent documentation assistant.
+
+You’ll be given one user message that is a JSON object:
+{
+  "projects": [ { "id": "...", "name": "...", "description": "..." }, … ],
+  "userInput": "…"
+}
+
+– If userInput is text or webpage content: summarize it concisely.
+– If it contains [image#id] tags: extract the key visual context.
+– Decide which project (by id/name) this input belongs to.
+– Do NOT write or modify content—only identify the project.
+
+Reply _only_ with valid JSON in this exact shape:
+{
+  "projectId":   "...",
+  "projectName": "...",
+  "processedInput": "..."
+}
+`;
+
+
 
 const blockModificationPrompt = `You are an expert document assistant that works with structured documentation projects. Each project consists of an ordered list of "blocks" of content, each with a type such as: 'paragraph', 'heading', 'image', or 'quote'.
 

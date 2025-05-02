@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { selectProject, modifyBlocks, simplifyProjects } from '@/services/chatgptService';
 import { addBlocksToProject } from '@/services/projectService';
 import { uploadImage } from '@/services/imageService';
-import { Project, Block } from '@/types/supabase';
+import { Project, Block } from '@/supabase/types/supabase';
 import { v4 as uuidv4 } from 'uuid';
 import Image from 'next/image';
 import NewProjectDialog from './NewProjectDialog';

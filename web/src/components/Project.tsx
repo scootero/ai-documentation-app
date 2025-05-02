@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import type { Project, Block } from '@/types/supabase';
+import type { Project, Block } from '@/supabase/types/supabase';
 import ProjectEditor from './ProjectEditor';
 import BlockRenderer from './blocks/BlockRenderer';
 

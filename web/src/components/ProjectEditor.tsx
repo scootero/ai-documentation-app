@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Project, Block } from '@/types/supabase';
+import { Project, Block } from '@/supabase/types';
 import EditableBlockImage from './blocks/EditableBlockImage';
 
 interface ProjectWithBlocks extends Project {

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Project, Block } from '@/types/supabase';
+import { Project, Block } from '@/supabase/types/supabase';
 import BlockRenderer from './blocks/BlockRenderer';
 import { formatDistanceToNow } from 'date-fns';
 import ProjectEditor from './ProjectEditor';

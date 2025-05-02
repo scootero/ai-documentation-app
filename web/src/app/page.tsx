@@ -6,7 +6,7 @@ import TextInput from '@/components/TextInput';
 import ProjectCard from '@/components/ProjectCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { getProjects, createProject } from '@/services/projectService';
-import { Project, Block } from '@/types/supabase';
+import { Project, Block } from '@/supabase/types/supabase';
 
 interface ProjectWithBlocks extends Project {
   blocks: Block[];

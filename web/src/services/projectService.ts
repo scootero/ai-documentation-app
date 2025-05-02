@@ -1,6 +1,6 @@
 // File: web/src/services/projectService.ts
 import { supabase } from '@/lib/supabase';
-import { Database } from '@/types/supabase';
+import { Database } from '@/supabase/types/supabase';
 
 type Project = Database['public']['Tables']['projects']['Row'];
 type Block = Database['public']['Tables']['blocks']['Row'];

@@ -1,127 +1,80 @@
 'use client';
 
 import React from 'react';
-import { Block } from '@/types/supabase';
+import { Block } from '@/supabase/types/supabase';
+import { ImageBlock } from '@/supabase/types/blocks';
+import BlockImage from './BlockImage';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import BlockImage from './BlockImage';
 
 interface BlockRendererProps {
   block: Block;
 }
 
-interface BlockMetadata {
-  formatting?: {
-    bold?: boolean;
-    italic?: boolean;
-    underline?: boolean;
-  };
-  items?: string[];
-  codeLanguage?: string;
-  showLineNumbers?: boolean;
-  alignment?: 'left' | 'center' | 'right';
-  width?: string;
-  height?: string;
-  altText?: string;
-  caption?: string;
+interface CodeBlockMetadata {
+  language?: string;
 }
 
 const BlockRenderer: React.FC<BlockRendererProps> = ({ block }) => {
-  const metadata = block.metadata as BlockMetadata;
-
-  const renderHeading = (content: string | null, level: number | null) => {
-    const Tag = level === 1 ? 'h1' : level === 2 ? 'h2' : 'h3';
-    return (
-      <Tag className={`font-bold text-gray-900 dark:text-white mb-4 ${
-        level === 1 ? 'text-3xl' :
-        level === 2 ? 'text-2xl' :
-        'text-xl'
-      }`}>
-        {content}
-      </Tag>
-    );
+  const isImageBlock = (block: Block): block is ImageBlock => {
+    return block.type === 'image' &&
+           block.metadata !== null &&
+           typeof block.metadata === 'object' &&
+           !Array.isArray(block.metadata);
   };
 
-  const getFormattedText = (text: string, formatting?: BlockMetadata['formatting']) => {
-    if (!formatting) return text;
-    let formattedText = text;
-    if (formatting.bold) formattedText = `<strong>${formattedText}</strong>`;
-    if (formatting.italic) formattedText = `<em>${formattedText}</em>`;
-    if (formatting.underline) formattedText = `<u>${formattedText}</u>`;
-    return formattedText;
-  };
+  if (isImageBlock(block)) {
+    return <BlockImage block={block} />;
+  }
 
-  // Render different block types
+  if (!block.content) {
+    return null;
+  }
+
+  // Handle different block types
   switch (block.type) {
     case 'heading':
-      return renderHeading(block.content, block.level);
-
-    case 'subheading':
-      return renderHeading(block.content, (block.level || 0) + 1);
+      const level = block.level || 1;
+      const HeadingTag = `h${level}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+      return <HeadingTag className="text-2xl font-bold mb-4">{block.content}</HeadingTag>;
 
     case 'paragraph':
-      return (
-        <p className="mb-4 text-gray-700 dark:text-gray-300">
-          {block.content && getFormattedText(block.content, metadata.formatting)}
-        </p>
-      );
+      return <p className="mb-4">{block.content}</p>;
 
-    case 'bulleted_list':
+    case 'list':
+      const items = block.content.split('\n').filter(item => item.trim());
       return (
-        <ul className="list-disc list-inside mb-4 space-y-2">
-          {metadata.items?.map((item, index) => (
-            <li key={index} className="text-gray-700 dark:text-gray-300">
-              {item}
-            </li>
+        <ul className="list-disc list-inside mb-4">
+          {items.map((item, index) => (
+            <li key={index} className="mb-1">{item.replace(/^[•-]\s*/, '')}</li>
           ))}
         </ul>
       );
 
-    case 'numbered_list':
-      return (
-        <ol className="list-decimal list-inside mb-4 space-y-2">
-          {metadata.items?.map((item, index) => (
-            <li key={index} className="text-gray-700 dark:text-gray-300">
-              {item}
-            </li>
-          ))}
-        </ol>
-      );
-
-    case 'image':
-      return (
-        <figure className="mb-4">
-          <BlockImage block={block} />
-        </figure>
-      );
-
-    case 'quote':
-      return (
-        <blockquote className="border-l-4 border-gray-300 dark:border-gray-700 pl-4 my-4 italic">
-          {block.content && getFormattedText(block.content, metadata.formatting)}
-        </blockquote>
-      );
-
     case 'code':
+      const codeMetadata = block.metadata as CodeBlockMetadata;
+      const language = codeMetadata?.language || 'javascript';
       return (
         <div className="mb-4">
           <SyntaxHighlighter
-            language={metadata.codeLanguage || 'text'}
+            language={language}
             style={atomDark}
-            showLineNumbers={metadata.showLineNumbers}
-            customStyle={{
-              margin: 0,
-              borderRadius: '0.5rem',
-              fontSize: '0.875rem'
-            }}
+            className="rounded-lg"
           >
-            {block.content || ''}
+            {block.content}
           </SyntaxHighlighter>
         </div>
       );
 
+    case 'quote':
+      return (
+        <blockquote className="border-l-4 border-gray-300 dark:border-gray-700 pl-4 italic mb-4">
+          {block.content}
+        </blockquote>
+      );
+
     default:
-      return null;
+      return <p className="mb-4">{block.content}</p>;
   }
 };
 
